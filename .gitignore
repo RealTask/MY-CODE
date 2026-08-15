@@ -1,0 +1,44 @@
+```
+# Rust-specific ignores
+target/
+Cargo.lock
+
+# Dependencies
+vendor/
+
+# Build artifacts
+**/*.rs.bk
+**/*.rlib
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.*
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Testing
+**/test_output/
+**/tests/tmp/
+
+# Cache
+**/.cache/
+**/_build/
+```
