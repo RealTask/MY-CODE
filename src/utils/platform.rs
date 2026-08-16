@@ -23,7 +23,7 @@ impl PlatformInfo {
         Self {
             os: env::consts::OS.to_string(),
             arch: env::consts::ARCH.to_string(),
-            env: env::consts::ENV.to_string(),
+            env: "unknown".to_string(), // ENV constant was removed from std::env::consts
             family: env::consts::FAMILY.to_string(),
         }
     }

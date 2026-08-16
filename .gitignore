@@ -2,43 +2,56 @@
 # Rust-specific ignores
 target/
 Cargo.lock
+**/*.rs.bk
+**/*.tmp
 
 # Dependencies
 vendor/
 
-# Build artifacts
-**/*.rs.bk
-**/*.rlib
-
-# Logs
+# Logs and temp files
 *.log
+*.tmp
+*.swp
 
 # Environment
 .env
 .env.local
 .env.*
 
-# Editor/IDE
+# Editors
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
-# OS
+# OS generated files
 .DS_Store
 Thumbs.db
 
-# Coverage
+# Coverage reports
 coverage/
 htmlcov/
 .coverage
 
-# Testing
-**/test_output/
-**/tests/tmp/
+# Build artifacts from other tools
+dist/
+build/
+*.out
+*.exe
+*.dll
+*.so
+*.a
+*.class
 
-# Cache
-**/.cache/
-**/_build/
+# Python-related (if mixed project)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pipenv.lock
 ```
