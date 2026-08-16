@@ -6,7 +6,7 @@ use std::path::PathBuf;
 /// MY CODE - AI-powered terminal coding agent
 #[derive(Parser, Debug)]
 #[command(name = "my-code")]
-#[command(author = "MY CODE Team")]
+#[command(author = "RealTask")]
 #[command(version = env!("CARGO_PKG_VERSION"))]
 #[command(about = "AI-powered terminal coding agent", long_about = None)]
 pub struct CliArgs {
