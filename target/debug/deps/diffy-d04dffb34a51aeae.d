@@ -1,0 +1,15 @@
+/workspace/target/debug/deps/diffy-d04dffb34a51aeae.d: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/apply.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/diff/mod.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/diff/cleanup.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/diff/myers.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/merge/mod.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/patch/mod.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/patch/format.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/patch/parse.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/range.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/utils.rs
+
+/workspace/target/debug/deps/libdiffy-d04dffb34a51aeae.rmeta: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/apply.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/diff/mod.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/diff/cleanup.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/diff/myers.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/merge/mod.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/patch/mod.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/patch/format.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/patch/parse.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/range.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/utils.rs
+
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/lib.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/apply.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/diff/mod.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/diff/cleanup.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/diff/myers.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/merge/mod.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/patch/mod.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/patch/format.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/patch/parse.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/range.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/diffy-0.4.2/src/utils.rs:

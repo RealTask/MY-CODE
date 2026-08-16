@@ -1,0 +1,14 @@
+/workspace/target/debug/deps/fancy_regex-2bf6d296457ecdb0.d: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/analyze.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/compile.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/error.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/expand.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/optimize.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/parse.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/parse_flags.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/replacer.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/vm.rs
+
+/workspace/target/debug/deps/libfancy_regex-2bf6d296457ecdb0.rmeta: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/analyze.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/compile.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/error.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/expand.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/optimize.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/parse.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/parse_flags.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/replacer.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/vm.rs
+
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/lib.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/analyze.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/compile.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/error.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/expand.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/optimize.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/parse.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/parse_flags.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/replacer.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/fancy-regex-0.16.2/src/vm.rs:

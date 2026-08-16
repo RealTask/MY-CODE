@@ -1,24 +1,11 @@
 ```
-# Compiled and build artifacts
-target/
-**/*.rs.bk
-**/*.rlib
-
-# Dependencies
-Cargo.lock
-vendor/
-
-# Logs and temp files
-*.log
+# Documentation and web build artifacts
+docs/**/*.html
+docs/**/_book/
+docs/**/*.pdf
+docs/**/*.epub
+web/dist/
+web/build/
 *.tmp
-*.swp
-
-# Editors
-.vscode/
-.idea/
-
-# Environment
-.env
-.env.local
-.env.*
+*.temp
 ```
