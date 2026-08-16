@@ -1,11 +1,11 @@
 ```
-# Rust-specific ignores
+# Compiled and build artifacts
 target/
-Cargo.lock
 **/*.rs.bk
-**/*.tmp
+**/*.rlib
 
 # Dependencies
+Cargo.lock
 vendor/
 
 # Logs and temp files
@@ -13,45 +13,12 @@ vendor/
 *.tmp
 *.swp
 
+# Editors
+.vscode/
+.idea/
+
 # Environment
 .env
 .env.local
 .env.*
-
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-
-# Build artifacts from other tools
-dist/
-build/
-*.out
-*.exe
-*.dll
-*.so
-*.a
-*.class
-
-# Python-related (if mixed project)
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-pip-log.txt
-pipenv.lock
 ```

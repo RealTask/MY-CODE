@@ -2,10 +2,10 @@
 name = "my-code"
 version = "0.1.0"
 edition = "2024"
-authors = ["MY CODE Team"]
+authors = ["RealTask"]
 description = "AI-powered terminal coding agent"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/my-code/my-code"
+repository = "https://github.com/RealTask/MY-CODE"
 keywords = ["ai", "coding", "agent", "cli", "developer-tools"]
 categories = ["development-tools", "command-line-utilities"]
 
