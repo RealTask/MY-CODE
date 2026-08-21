@@ -2,6 +2,7 @@
 name = "my-code"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
 authors = ["RealTask"]
 description = "AI-powered terminal coding agent"
 license = "MIT OR Apache-2.0"

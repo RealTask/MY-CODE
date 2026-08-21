@@ -1,7 +1,5 @@
 //! Agent events
 
-use std::time::Instant;
-
 /// Events emitted by the agent
 #[derive(Debug, Clone)]
 pub enum AgentEvent {

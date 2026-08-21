@@ -1,8 +1,8 @@
 //! Search tools for files and text
 
 use anyhow::Result;
-use std::path::{Path, PathBuf};
 use glob::Pattern;
+use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 /// Search result item
@@ -13,20 +13,46 @@ pub struct SearchResult {
     pub content: String,
 }
 
-/// Search for files by pattern
+fn matches_pattern(pattern: &Pattern, path: &Path, root: &Path) -> bool {
+    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+        if pattern.matches(name) {
+            return true;
+        }
+    }
+    if let Ok(relative) = path.strip_prefix(root) {
+        let rel = relative.to_string_lossy();
+        if pattern.matches(&rel) {
+            return true;
+        }
+        // Also try with forward slashes for glob consistency
+        let rel_fwd = rel.replace('\\', "/");
+        if pattern.matches(&rel_fwd) {
+            return true;
+        }
+    }
+    if let Some(path_str) = path.to_str() {
+        pattern.matches(path_str)
+    } else {
+        false
+    }
+}
+
+/// Search for files by pattern (matched against file name and path relative to root)
 pub fn find_files(pattern: &str, root: &Path) -> Result<Vec<PathBuf>> {
     let glob_pattern = Pattern::new(pattern)?;
     let mut results = Vec::new();
-    
-    for entry in WalkDir::new(root).follow_links(true).into_iter().filter_map(|e| e.ok()) {
+
+    for entry in WalkDir::new(root)
+        .follow_links(false)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
         let path = entry.path();
-        if let Some(path_str) = path.to_str() {
-            if glob_pattern.matches(path_str) {
-                results.push(path.to_path_buf());
-            }
+        if path.is_file() && matches_pattern(&glob_pattern, path, root) {
+            results.push(path.to_path_buf());
         }
     }
-    
+
     Ok(results)
 }
 
@@ -39,33 +65,28 @@ pub fn search_text(
 ) -> Result<Vec<SearchResult>> {
     let mut results = Vec::new();
     let pattern = file_pattern.map(Pattern::new).transpose()?;
-    
+
     for entry in WalkDir::new(root)
-        .follow_links(true)
+        .follow_links(false)
         .into_iter()
         .filter_map(|e| e.ok())
     {
         if results.len() >= max_results {
             break;
         }
-        
+
         let path = entry.path();
-        
-        // Skip directories and binary files
+
         if !path.is_file() {
             continue;
         }
-        
-        // Check file pattern if provided
+
         if let Some(ref pat) = pattern {
-            if let Some(path_str) = path.to_str() {
-                if !pat.matches(path_str) {
-                    continue;
-                }
+            if !matches_pattern(pat, path, root) {
+                continue;
             }
         }
-        
-        // Try to read as text
+
         if let Ok(content) = std::fs::read_to_string(path) {
             for (line_num, line) in content.lines().enumerate() {
                 if line.contains(query) {
@@ -74,7 +95,7 @@ pub fn search_text(
                         line_number: Some(line_num + 1),
                         content: line.trim().to_string(),
                     });
-                    
+
                     if results.len() >= max_results {
                         break;
                     }
@@ -82,14 +103,14 @@ pub fn search_text(
             }
         }
     }
-    
+
     Ok(results)
 }
 
 /// Get file info
 pub fn get_file_info(path: &Path) -> Result<FileInfo> {
     let metadata = std::fs::metadata(path)?;
-    
+
     Ok(FileInfo {
         path: path.to_path_buf(),
         size: metadata.len(),
@@ -114,9 +135,13 @@ pub struct FileInfo {
 /// List files in directory
 pub fn list_files(dir: &Path, recursive: bool) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
-    
+
     if recursive {
-        for entry in WalkDir::new(dir).follow_links(true).into_iter().filter_map(|e| e.ok()) {
+        for entry in WalkDir::new(dir)
+            .follow_links(false)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
             if entry.path().is_file() {
                 files.push(entry.path().to_path_buf());
             }
@@ -129,26 +154,31 @@ pub fn list_files(dir: &Path, recursive: bool) -> Result<Vec<PathBuf>> {
             }
         }
     }
-    
+
     Ok(files)
 }
 
 /// Search tools collection
+#[derive(Debug, Default, Clone, Copy)]
 pub struct SearchTools;
 
 impl SearchTools {
+    pub fn new() -> Self {
+        Self
+    }
+
     /// Find files matching pattern
-    pub fn find_files(pattern: &str, root: &Path) -> Result<Vec<PathBuf>> {
+    pub fn find_files(&self, pattern: &str, root: &Path) -> Result<Vec<PathBuf>> {
         find_files(pattern, root)
     }
-    
+
     /// Search for text in files
-    pub fn search_text(query: &str, root: &Path) -> Result<Vec<SearchResult>> {
+    pub fn search_text(&self, query: &str, root: &Path) -> Result<Vec<SearchResult>> {
         search_text(query, root, None, 100)
     }
-    
+
     /// List files in directory
-    pub fn list_files(dir: &Path, recursive: bool) -> Result<Vec<PathBuf>> {
+    pub fn list_files(&self, dir: &Path, recursive: bool) -> Result<Vec<PathBuf>> {
         list_files(dir, recursive)
     }
 }
@@ -157,23 +187,27 @@ impl SearchTools {
 mod tests {
     use super::*;
     use tempfile::tempdir;
-    
+
     #[test]
     fn test_find_files() {
         let dir = tempdir().unwrap();
         std::fs::write(dir.path().join("test.rs"), "fn main() {}").unwrap();
         std::fs::write(dir.path().join("other.txt"), "hello").unwrap();
-        
+
         let results = find_files("*.rs", dir.path()).unwrap();
         assert_eq!(results.len(), 1);
         assert!(results[0].ends_with("test.rs"));
     }
-    
+
     #[test]
     fn test_search_text() {
         let dir = tempdir().unwrap();
-        std::fs::write(dir.path().join("test.txt"), "hello world\ntest line\nhello again").unwrap();
-        
+        std::fs::write(
+            dir.path().join("test.txt"),
+            "hello world\ntest line\nhello again",
+        )
+        .unwrap();
+
         let results = search_text("hello", dir.path(), None, 10).unwrap();
         assert_eq!(results.len(), 2);
     }

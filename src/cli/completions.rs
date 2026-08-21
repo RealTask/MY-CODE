@@ -1,12 +1,12 @@
 //! Shell completions generation
 
 use clap::Command;
-use clap_complete::{Shell, Generator};
+use clap_complete::Shell;
 
 /// Generate completions for a specific shell
 pub fn generate(shell: Shell, cmd: &mut Command) {
     let name = cmd.get_name().to_string();
-    Generator::generate(&shell, cmd, name, &mut std::io::stdout());
+    clap_complete::generate(shell, cmd, name, &mut std::io::stdout());
 }
 
 /// Get all supported shells

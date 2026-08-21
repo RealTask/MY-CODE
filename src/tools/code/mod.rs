@@ -51,21 +51,18 @@ impl SymbolKind {
 pub fn analyze_symbols(path: &Path) -> Result<Vec<Symbol>> {
     let content = std::fs::read_to_string(path)?;
     let mut symbols = Vec::new();
-    
-    // Simple heuristic-based symbol detection
-    // In production, this would use tree-sitter for proper parsing
+
     let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-    
+
     for (line_num, line) in content.lines().enumerate() {
         let trimmed = line.trim();
-        
-        // Detect functions (various languages)
-        if trimmed.starts_with("fn ") 
+
+        if trimmed.starts_with("fn ")
             || trimmed.starts_with("function ")
             || trimmed.starts_with("def ")
             || (trimmed.contains("func ") && extension == "go")
         {
-            if let Some(name) = extract_function_name(trimmed, extension) {
+            if let Some(name) = extract_function_name(trimmed) {
                 symbols.push(Symbol {
                     name,
                     kind: SymbolKind::Function,
@@ -75,8 +72,7 @@ pub fn analyze_symbols(path: &Path) -> Result<Vec<Symbol>> {
                 });
             }
         }
-        
-        // Detect classes/structs
+
         if trimmed.starts_with("class ")
             || trimmed.starts_with("struct ")
             || trimmed.starts_with("interface ")
@@ -89,7 +85,7 @@ pub fn analyze_symbols(path: &Path) -> Result<Vec<Symbol>> {
                 } else {
                     SymbolKind::Interface
                 };
-                
+
                 symbols.push(Symbol {
                     name,
                     kind,
@@ -100,18 +96,20 @@ pub fn analyze_symbols(path: &Path) -> Result<Vec<Symbol>> {
             }
         }
     }
-    
+
     Ok(symbols)
 }
 
-fn extract_function_name(line: &str, extension: &str) -> Option<String> {
-    // Very simplified extraction
+fn extract_function_name(line: &str) -> Option<String> {
     let parts: Vec<&str> = line.split_whitespace().collect();
     if parts.len() >= 2 {
         let name_part = parts[1];
-        // Remove parentheses and parameters
         let name = name_part.split('(').next()?.trim();
-        Some(name.to_string())
+        if name.is_empty() {
+            None
+        } else {
+            Some(name.to_string())
+        }
     } else {
         None
     }
@@ -120,7 +118,12 @@ fn extract_function_name(line: &str, extension: &str) -> Option<String> {
 fn extract_type_name(line: &str) -> Option<String> {
     let parts: Vec<&str> = line.split_whitespace().collect();
     if parts.len() >= 2 {
-        Some(parts[1].to_string())
+        let name = parts[1].trim_matches(|c| c == '{' || c == ':' || c == '<');
+        if name.is_empty() {
+            None
+        } else {
+            Some(name.to_string())
+        }
     } else {
         None
     }
@@ -143,7 +146,6 @@ pub fn detect_language(path: &Path) -> Option<&'static str> {
         "swift" => Some("swift"),
         "kt" => Some("kotlin"),
         "scala" => Some("scala"),
-        "rs" => Some("rust"),
         _ => None,
     })
 }
@@ -152,42 +154,41 @@ pub fn detect_language(path: &Path) -> Option<&'static str> {
 pub fn count_lines(path: &Path) -> Result<LineCount> {
     let content = std::fs::read_to_string(path)?;
     let mut lines = LineCount::default();
-    
     let mut in_multiline_comment = false;
-    let mut in_multiline_string = false;
-    
+
     for line in content.lines() {
+        lines.total += 1;
         let trimmed = line.trim();
-        
-        // Track multiline comments
-        if trimmed.starts_with("/*") && !trimmed.ends_with("*/") {
-            in_multiline_comment = true;
-        }
-        if trimmed.contains("*/") {
-            in_multiline_comment = false;
+
+        if in_multiline_comment {
+            lines.comments += 1;
+            if trimmed.contains("*/") {
+                in_multiline_comment = false;
+            }
             continue;
         }
-        
-        // Skip empty lines and comments
-        if trimmed.is_empty()
-            || trimmed.starts_with("//")
-            || trimmed.starts_with('#')
-            || trimmed.starts_with("--")
-            || in_multiline_comment
-        {
+
+        if trimmed.is_empty() {
             lines.blank += 1;
             continue;
         }
-        
-        lines.code += 1;
-        
-        // Count comments on same line
-        if trimmed.contains("//") || trimmed.contains('#') {
+
+        if trimmed.starts_with("/*") {
             lines.comments += 1;
+            if !trimmed.contains("*/") {
+                in_multiline_comment = true;
+            }
+            continue;
         }
+
+        if trimmed.starts_with("//") || trimmed.starts_with('#') || trimmed.starts_with("--") {
+            lines.comments += 1;
+            continue;
+        }
+
+        lines.code += 1;
     }
-    
-    lines.total = lines.code + lines.blank + lines.comments;
+
     Ok(lines)
 }
 
@@ -201,21 +202,26 @@ pub struct LineCount {
 }
 
 /// Code tools collection
+#[derive(Debug, Default, Clone, Copy)]
 pub struct CodeTools;
 
 impl CodeTools {
+    pub fn new() -> Self {
+        Self
+    }
+
     /// Analyze symbols in a file
-    pub fn analyze(path: &Path) -> Result<Vec<Symbol>> {
+    pub fn analyze(&self, path: &Path) -> Result<Vec<Symbol>> {
         analyze_symbols(path)
     }
-    
+
     /// Detect language
-    pub fn language(path: &Path) -> Option<&'static str> {
+    pub fn language(&self, path: &Path) -> Option<&'static str> {
         detect_language(path)
     }
-    
+
     /// Count lines
-    pub fn count_lines(path: &Path) -> Result<LineCount> {
+    pub fn count_lines(&self, path: &Path) -> Result<LineCount> {
         count_lines(path)
     }
 }
@@ -224,21 +230,33 @@ impl CodeTools {
 mod tests {
     use super::*;
     use tempfile::tempdir;
-    
+
     #[test]
     fn test_detect_language() {
         assert_eq!(detect_language(Path::new("test.rs")), Some("rust"));
         assert_eq!(detect_language(Path::new("test.py")), Some("python"));
         assert_eq!(detect_language(Path::new("test.js")), Some("javascript"));
     }
-    
+
     #[test]
     fn test_count_lines() {
         let dir = tempdir().unwrap();
         let file = dir.path().join("test.rs");
         std::fs::write(&file, "fn main() {\n    // comment\n    println!();\n}\n").unwrap();
-        
+
         let count = count_lines(&file).unwrap();
         assert!(count.code > 0);
+        assert_eq!(count.comments, 1);
+        assert_eq!(count.total, count.code + count.comments + count.blank);
+    }
+
+    #[test]
+    fn test_analyze_symbols() {
+        let dir = tempdir().unwrap();
+        let file = dir.path().join("lib.rs");
+        std::fs::write(&file, "fn hello() {}\nstruct Foo {}\n").unwrap();
+        let symbols = analyze_symbols(&file).unwrap();
+        assert!(symbols.iter().any(|s| s.name == "hello"));
+        assert!(symbols.iter().any(|s| s.name == "Foo"));
     }
 }

@@ -59,7 +59,7 @@ pub struct CliArgs {
 }
 
 /// Available commands
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum Command {
     /// Start an interactive chat session
     Chat {

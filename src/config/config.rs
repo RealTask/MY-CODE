@@ -1,12 +1,13 @@
 //! Main configuration structure
 
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use crate::context::ContextConfig;
 use crate::providers::ProviderConfig;
 use crate::sandbox::SandboxPolicy;
-use crate::context::ContextConfig;
 
 /// Main configuration structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -166,22 +167,31 @@ impl Config {
         Self::default()
     }
 
-    /// Load configuration from a file
-    pub fn load(path: &std::path::Path) -> Result<Self, Box<dyn std::error::Error>> {
-        let content = std::fs::read_to_string(path)?;
-        let config: Config = toml::from_str(&content)?;
+    /// Load configuration from an optional path, falling back to defaults.
+    pub fn load(path: Option<&Path>) -> Result<Self> {
+        crate::config::loader::ConfigLoader::load(path)
+    }
+
+    /// Load configuration from a specific file.
+    pub fn load_from_file(path: &Path) -> Result<Self> {
+        let content = std::fs::read_to_string(path)
+            .with_context(|| format!("Failed to read config file {}", path.display()))?;
+        let mut config: Config = toml::from_str(&content)
+            .with_context(|| format!("Failed to parse config file {}", path.display()))?;
+        config.project_config_path = Some(path.to_path_buf());
         Ok(config)
     }
 
     /// Save configuration to a file
-    pub fn save(&self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
-        let content = toml::to_string_pretty(self)?;
-        
+    pub fn save(&self, path: &Path) -> Result<()> {
+        let content = toml::to_string_pretty(self).context("Failed to serialize configuration")?;
+
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        
-        std::fs::write(path, content)?;
+
+        std::fs::write(path, content)
+            .with_context(|| format!("Failed to write config file {}", path.display()))?;
         Ok(())
     }
 
@@ -190,14 +200,37 @@ impl Config {
         self.providers.get(name)
     }
 
-    /// Merge another configuration into this one
+    /// Merge another configuration into this one. `other` wins on conflicts.
     pub fn merge(&mut self, other: Config) {
         for (key, value) in other.providers {
-            self.providers.entry(key).or_insert(value);
+            self.providers.insert(key, value);
         }
-        
-        if self.default_model.is_none() {
+
+        if !other.default_provider.is_empty() {
+            self.default_provider = other.default_provider;
+        }
+
+        if other.default_model.is_some() {
             self.default_model = other.default_model;
+        }
+
+        self.sandbox = other.sandbox;
+        self.context = other.context;
+        self.ui = other.ui;
+        self.logging = other.logging;
+
+        for (key, value) in other.plugins {
+            self.plugins.insert(key, value);
+        }
+        for (key, value) in other.tools {
+            self.tools.insert(key, value);
+        }
+
+        if other.project_config_path.is_some() {
+            self.project_config_path = other.project_config_path;
+        }
+        if other.user_config_path.is_some() {
+            self.user_config_path = other.user_config_path;
         }
     }
 }
@@ -218,8 +251,14 @@ mod tests {
         let config = Config::default();
         let serialized = toml::to_string(&config).unwrap();
         assert!(!serialized.is_empty());
-        
+
         let deserialized: Config = toml::from_str(&serialized).unwrap();
         assert_eq!(deserialized.default_provider, config.default_provider);
+    }
+
+    #[test]
+    fn load_none_returns_default() {
+        let config = Config::load(None).unwrap();
+        assert_eq!(config.default_provider, "openai");
     }
 }

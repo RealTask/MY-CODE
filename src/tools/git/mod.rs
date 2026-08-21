@@ -1,7 +1,7 @@
 //! Git tools
 
 use anyhow::Result;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 
 /// Git status information
@@ -17,52 +17,50 @@ pub struct GitStatus {
 /// Get git status
 pub fn get_status(repo_path: &Path) -> Result<GitStatus> {
     let mut status = GitStatus::default();
-    
-    // Get current branch
+
     let output = Command::new("git")
         .args(["rev-parse", "--abbrev-ref", "HEAD"])
         .current_dir(repo_path)
         .output()?;
-    
+
     if output.status.success() {
         status.branch = String::from_utf8_lossy(&output.stdout).trim().to_string();
     }
-    
-    // Get status porcelains
+
     let output = Command::new("git")
         .args(["status", "--porcelain"])
         .current_dir(repo_path)
         .output()?;
-    
+
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         for line in stdout.lines() {
-            if line.is_empty() {
+            if line.len() < 4 {
                 continue;
             }
-            
+
             let index_state = line.chars().next().unwrap_or(' ');
             let work_tree_state = line.chars().nth(1).unwrap_or(' ');
             let path = line[3..].to_string();
-            
+
             if index_state != ' ' && index_state != '?' {
                 status.staged_files.push(path.clone());
             }
-            
+
             if work_tree_state != ' ' && work_tree_state != '?' {
                 status.unstaged_files.push(path.clone());
             }
-            
+
             if index_state == '?' {
                 status.untracked_files.push(path);
             }
         }
-        
+
         status.is_dirty = !status.staged_files.is_empty()
             || !status.unstaged_files.is_empty()
             || !status.untracked_files.is_empty();
     }
-    
+
     Ok(status)
 }
 
@@ -70,17 +68,17 @@ pub fn get_status(repo_path: &Path) -> Result<GitStatus> {
 pub fn get_diff(repo_path: &Path, staged: bool) -> Result<String> {
     let mut cmd = Command::new("git");
     cmd.arg("diff");
-    
+
     if staged {
         cmd.arg("--cached");
     }
-    
+
     let output = cmd.current_dir(repo_path).output()?;
-    
+
     if output.status.success() {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     } else {
-        Ok(String::from_utf8_lossy(&output.stderr).to_string())
+        anyhow::bail!("{}", String::from_utf8_lossy(&output.stderr));
     }
 }
 
@@ -95,13 +93,13 @@ pub fn get_log(repo_path: &Path, max_commits: usize) -> Result<Vec<CommitInfo>> 
         ])
         .current_dir(repo_path)
         .output()?;
-    
+
     let mut commits = Vec::new();
-    
+
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
         for line in stdout.lines() {
-            let parts: Vec<&str> = line.split('|').collect();
+            let parts: Vec<&str> = line.splitn(5, '|').collect();
             if parts.len() >= 5 {
                 commits.push(CommitInfo {
                     hash: parts[0].to_string(),
@@ -113,7 +111,7 @@ pub fn get_log(repo_path: &Path, max_commits: usize) -> Result<Vec<CommitInfo>> 
             }
         }
     }
-    
+
     Ok(commits)
 }
 
@@ -131,13 +129,13 @@ pub struct CommitInfo {
 pub fn stage_files(repo_path: &Path, files: &[&str]) -> Result<()> {
     let mut cmd = Command::new("git");
     cmd.arg("add").current_dir(repo_path);
-    
+
     for file in files {
         cmd.arg(file);
     }
-    
+
     let output = cmd.output()?;
-    
+
     if output.status.success() {
         Ok(())
     } else {
@@ -151,7 +149,7 @@ pub fn commit(repo_path: &Path, message: &str) -> Result<()> {
         .args(["commit", "-m", message])
         .current_dir(repo_path)
         .output()?;
-    
+
     if output.status.success() {
         Ok(())
     } else {
@@ -159,28 +157,32 @@ pub fn commit(repo_path: &Path, message: &str) -> Result<()> {
     }
 }
 
-/// Check if directory is a git repo
+/// Check if directory is a git repo (including `.git` files used by worktrees)
 pub fn is_git_repo(path: &Path) -> bool {
-    let git_dir = path.join(".git");
-    git_dir.exists()
+    path.join(".git").exists()
 }
 
 /// Git tools collection
+#[derive(Debug, Default, Clone, Copy)]
 pub struct GitTools;
 
 impl GitTools {
+    pub fn new() -> Self {
+        Self
+    }
+
     /// Get repository status
-    pub fn status(repo_path: &Path) -> Result<GitStatus> {
+    pub fn status(&self, repo_path: &Path) -> Result<GitStatus> {
         get_status(repo_path)
     }
-    
+
     /// Get diff
-    pub fn diff(repo_path: &Path, staged: bool) -> Result<String> {
+    pub fn diff(&self, repo_path: &Path, staged: bool) -> Result<String> {
         get_diff(repo_path, staged)
     }
-    
+
     /// Check if git repo
-    pub fn is_repo(path: &Path) -> bool {
+    pub fn is_repo(&self, path: &Path) -> bool {
         is_git_repo(path)
     }
 }
@@ -188,21 +190,21 @@ impl GitTools {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::process::Command as StdCommand;
-    
+    use tempfile::tempdir;
+
     #[test]
     fn test_is_git_repo() {
         let dir = tempdir().unwrap();
         assert!(!is_git_repo(dir.path()));
-        
-        // Initialize git repo
-        StdCommand::new("git")
+
+        let status = StdCommand::new("git")
             .args(["init"])
             .current_dir(dir.path())
-            .output()
-            .unwrap();
-        
-        assert!(is_git_repo(dir.path()));
+            .output();
+
+        if status.map(|o| o.status.success()).unwrap_or(false) {
+            assert!(is_git_repo(dir.path()));
+        }
     }
 }

@@ -2,8 +2,8 @@
 
 pub mod args;
 pub mod commands;
-pub mod parser;
 pub mod completions;
+pub mod parser;
 
 pub use args::CliArgs;
-pub use commands::Command;
+pub use args::Command;
