@@ -1,7 +1,11 @@
 //! Tool result types
 
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+
+fn default_timestamp() -> DateTime<Utc> {
+    Utc::now()
+}
 
 /// Result of a tool execution
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,7 +27,7 @@ pub struct ToolResult {
     pub error: Option<String>,
 
     /// Timestamp when the result was created
-    #[serde(default)]
+    #[serde(default = "default_timestamp")]
     pub timestamp: DateTime<Utc>,
 
     /// Optional metadata about the execution

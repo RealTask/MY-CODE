@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_error_from_provider() {
-        let provider_err = ProviderError::ApiError("Connection failed".to_string());
+        let provider_err = ProviderError::ApiRequest("Connection failed".to_string());
         let agent_err: AgentError = provider_err.into();
         assert!(matches!(agent_err, AgentError::ProviderError(_)));
     }

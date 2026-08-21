@@ -1,8 +1,8 @@
 //! CLI argument parser
 
-use clap::{Parser, CommandFactory};
-use crate::cli::args::CliArgs;
-use crate::cli::commands::Command;
+use clap::{CommandFactory, Parser};
+
+use crate::cli::args::{CliArgs, Command};
 
 /// Parse command-line arguments
 pub fn parse_args() -> CliArgs {

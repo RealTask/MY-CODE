@@ -1,8 +1,16 @@
 //! Message types for model interactions
 
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+fn default_message_id() -> String {
+    Uuid::new_v4().to_string()
+}
+
+fn default_timestamp() -> DateTime<Utc> {
+    Utc::now()
+}
 
 /// Role of a message sender
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -29,7 +37,7 @@ impl std::fmt::Display for MessageRole {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     /// Unique identifier for the message
-    #[serde(default)]
+    #[serde(default = "default_message_id")]
     pub id: String,
 
     /// Role of the message sender
@@ -51,7 +59,7 @@ pub struct Message {
     pub name: Option<String>,
 
     /// Timestamp when the message was created
-    #[serde(default)]
+    #[serde(default = "default_timestamp")]
     pub timestamp: DateTime<Utc>,
 
     /// Optional metadata

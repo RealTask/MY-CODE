@@ -46,7 +46,10 @@
 //! async fn main() -> anyhow::Result<()> {
 //!     let config = Config::default();
 //!     let mut app = Application::new(config)?;
-//!     app.run(Command::Chat { message: vec!["Build authentication".to_string()] }).await?;
+//!     app.run(Command::Chat {
+//!         message: vec!["Build authentication".to_string()],
+//!     })
+//!     .await?;
 //!     Ok(())
 //! }
 //! ```
@@ -65,11 +68,11 @@
 
 pub mod agent;
 pub mod app;
+pub mod checkpoints;
 pub mod cli;
+pub mod commands;
 pub mod config;
 pub mod context;
-pub mod checkpoints;
-pub mod commands;
 pub mod database;
 pub mod diff;
 pub mod edit;

@@ -1,11 +1,14 @@
 //! Process execution utilities
 
+use anyhow::{Context, Result};
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Output, Stdio};
-use anyhow::{Context, Result};
+use std::time::{Duration, Instant};
+use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command as TokioCommand;
-use tokio::time::{timeout, Duration};
+use tokio::time::timeout;
 
 /// Utility functions for process management
 pub struct ProcessUtils;
@@ -34,13 +37,49 @@ impl ProcessUtils {
         command.stdout(Stdio::piped());
         command.stderr(Stdio::piped());
 
-        // Note: synchronous timeout requires spawning a thread
-        // For now, we use the async version
-        let output = std::thread::spawn(move || {
-            command.output()
-        }).join().map_err(|_| anyhow::anyhow!("Thread panicked"))??;
+        let mut child = command
+            .spawn()
+            .with_context(|| format!("Failed to spawn command: {cmd}"))?;
 
-        Ok(output)
+        let mut stdout_handle = child.stdout.take();
+        let mut stderr_handle = child.stderr.take();
+        let stdout_thread = std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            if let Some(mut handle) = stdout_handle.take() {
+                let _ = handle.read_to_end(&mut buf);
+            }
+            buf
+        });
+        let stderr_thread = std::thread::spawn(move || {
+            let mut buf = Vec::new();
+            if let Some(mut handle) = stderr_handle.take() {
+                let _ = handle.read_to_end(&mut buf);
+            }
+            buf
+        });
+
+        let deadline = Instant::now() + Duration::from_secs(timeout_secs);
+        loop {
+            match child.try_wait()? {
+                Some(status) => {
+                    let stdout = stdout_thread.join().unwrap_or_default();
+                    let stderr = stderr_thread.join().unwrap_or_default();
+                    return Ok(Output {
+                        status,
+                        stdout,
+                        stderr,
+                    });
+                }
+                None => {
+                    if Instant::now() >= deadline {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        anyhow::bail!("Command timed out after {timeout_secs} seconds");
+                    }
+                    std::thread::sleep(Duration::from_millis(20));
+                }
+            }
+        }
     }
 
     /// Execute a command asynchronously with timeout
@@ -66,28 +105,29 @@ impl ProcessUtils {
         command.stdout(Stdio::piped());
         command.stderr(Stdio::piped());
 
-        let child = command.spawn()
-            .with_context(|| format!("Failed to spawn command: {}", cmd))?;
+        let child = command
+            .spawn()
+            .with_context(|| format!("Failed to spawn command: {cmd}"))?;
 
         let output_future = child.wait_with_output();
-        
+
         let output = timeout(timeout_duration, output_future)
             .await
-            .with_context(|| format!("Command timed out after {:?}", timeout_duration))?
-            .with_context(|| format!("Failed to wait for command: {}", cmd))?;
+            .with_context(|| format!("Command timed out after {timeout_duration:?}"))?
+            .with_context(|| format!("Failed to wait for command: {cmd}"))?;
 
         Ok(output)
     }
 
-    /// Execute a command and stream output
+    /// Execute a command and stream output line-by-line to the provided handlers
     pub async fn execute_streaming(
         cmd: &str,
         args: &[&str],
         cwd: Option<&Path>,
         env: Option<HashMap<String, String>>,
         timeout_duration: Duration,
-        stdout_handler: impl FnMut(&str),
-        stderr_handler: impl FnMut(&str),
+        mut stdout_handler: impl FnMut(&str),
+        mut stderr_handler: impl FnMut(&str),
     ) -> Result<ExitStatus> {
         let mut command = TokioCommand::new(cmd);
         command.args(args);
@@ -104,17 +144,44 @@ impl ProcessUtils {
         command.stdout(Stdio::piped());
         command.stderr(Stdio::piped());
 
-        let mut child = command.spawn()
-            .with_context(|| format!("Failed to spawn command: {}", cmd))?;
+        let mut child = command
+            .spawn()
+            .with_context(|| format!("Failed to spawn command: {cmd}"))?;
 
-        // This is a simplified implementation
-        // A full streaming implementation would use channels
-        let status = timeout(timeout_duration, child.wait())
+        let stdout = child.stdout.take();
+        let stderr = child.stderr.take();
+
+        let wait_future = async {
+            if let Some(out) = stdout {
+                let mut lines = BufReader::new(out).lines();
+                while let Some(line) = lines
+                    .next_line()
+                    .await
+                    .context("Failed to read command stdout")?
+                {
+                    stdout_handler(&line);
+                }
+            }
+            if let Some(err) = stderr {
+                let mut lines = BufReader::new(err).lines();
+                while let Some(line) = lines
+                    .next_line()
+                    .await
+                    .context("Failed to read command stderr")?
+                {
+                    stderr_handler(&line);
+                }
+            }
+            let status = child
+                .wait()
+                .await
+                .context("Failed to wait for command")?;
+            anyhow::Ok(status)
+        };
+
+        timeout(timeout_duration, wait_future)
             .await
-            .with_context(|| format!("Command timed out after {:?}", timeout_duration))?
-            .with_context(|| format!("Failed to wait for command: {}", cmd))?;
-
-        Ok(status)
+            .with_context(|| format!("Command timed out after {timeout_duration:?}"))?
     }
 
     /// Check if a command exists in PATH
@@ -139,25 +206,30 @@ impl ProcessUtils {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tokio::runtime::Runtime;
 
     #[test]
     fn test_command_exists() {
-        assert!(ProcessUtils::command_exists("ls"));
+        #[cfg(unix)]
+        assert!(ProcessUtils::command_exists("ls") || ProcessUtils::command_exists("echo"));
         assert!(!ProcessUtils::command_exists("nonexistent_command_xyz123"));
     }
 
     #[tokio::test]
     async fn test_execute_simple() {
-        let output = ProcessUtils::execute(
-            "echo",
-            &["hello"],
-            None,
-            None,
-            Duration::from_secs(5),
-        ).await.unwrap();
+        let output = ProcessUtils::execute("echo", &["hello"], None, None, Duration::from_secs(5))
+            .await
+            .unwrap();
 
         assert!(output.status.success());
         assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "hello");
+    }
+
+    #[test]
+    fn test_execute_sync_timeout() {
+        #[cfg(unix)]
+        {
+            let err = ProcessUtils::execute_sync("sleep", &["5"], None, None, 1).unwrap_err();
+            assert!(err.to_string().contains("timed out"));
+        }
     }
 }

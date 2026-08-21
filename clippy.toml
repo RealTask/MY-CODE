@@ -3,14 +3,6 @@
 # Allow some lints that are too pedantic for our use case
 allowed-wildcard-imports = []
 
-# Disallow dangerous patterns
-disallowed-methods = [
-    { path = "std::panic", reason = "Use anyhow/thiserror instead" },
-]
-
 # Prefer these alternatives
 too-many-arguments-threshold = 8
 type-complexity-threshold = 300
-
-# Warn on these
-warn-on-multiple-crate-versions = true

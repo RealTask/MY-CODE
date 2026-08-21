@@ -4,8 +4,18 @@
 pub struct TokenUtils;
 
 impl TokenUtils {
+    fn floor_char_boundary(text: &str, mut index: usize) -> usize {
+        if index >= text.len() {
+            return text.len();
+        }
+        while index > 0 && !text.is_char_boundary(index) {
+            index -= 1;
+        }
+        index
+    }
+
     /// Estimate token count for text (rough approximation)
-    /// 
+    ///
     /// This uses a simple heuristic: ~4 characters per token for English text.
     /// For more accurate counting, use a proper tokenizer.
     pub fn estimate_token_count(text: &str) -> usize {
@@ -13,10 +23,9 @@ impl TokenUtils {
             return 0;
         }
 
-        // Simple heuristic: average of character-based and word-based estimates
-        let char_estimate = text.len() / 4;
+        let char_estimate = text.chars().count() / 4;
         let word_estimate = text.split_whitespace().count() * 4 / 3;
-        
+
         (char_estimate + word_estimate) / 2
     }
 
@@ -37,30 +46,25 @@ impl TokenUtils {
                     word_len = 0;
                 }
                 word_len += 1;
-                
-                // Every 8 characters in a word is roughly a token
+
                 if word_len % 8 == 0 {
                     count += 1;
                 }
             } else if c.is_whitespace() {
                 if in_word {
-                    // End of word: count remaining characters
                     count += (word_len as f64 / 4.0).ceil() as usize;
                     in_word = false;
                 }
-                // Whitespace tokens
                 count += 1;
             } else {
                 if in_word {
                     count += (word_len as f64 / 4.0).ceil() as usize;
                     in_word = false;
                 }
-                // Punctuation and special chars
                 count += 1;
             }
         }
 
-        // Handle last word if any
         if in_word {
             count += (word_len as f64 / 4.0).ceil() as usize;
         }
@@ -75,21 +79,27 @@ impl TokenUtils {
 
     /// Truncate text to fit within token budget
     pub fn truncate_to_budget(text: &str, budget: usize) -> String {
-        if budget == 0 {
+        if budget == 0 || text.is_empty() {
             return String::new();
         }
 
-        // Binary search for the right truncation point
+        if Self::estimate_token_count(text) <= budget {
+            return text.to_string();
+        }
+
         let mut low = 0;
         let mut high = text.len();
-        let mut result = text.to_string();
+        let mut result = String::new();
 
         while low < high {
-            let mid = (low + high) / 2;
+            let mid = Self::floor_char_boundary(text, (low + high) / 2);
+            if mid == low {
+                break;
+            }
             let truncated = &text[..mid];
-            
+
             if Self::estimate_token_count(truncated) <= budget {
-                low = mid + 1;
+                low = (mid + 1).min(text.len());
                 result = truncated.to_string();
             } else {
                 high = mid;
@@ -114,10 +124,12 @@ mod tests {
 
     #[test]
     fn test_estimate_token_count() {
-        // Rough estimates - these are approximations
-        assert!(TokenUtils::estimate_token_count("") == 0);
+        assert_eq!(TokenUtils::estimate_token_count(""), 0);
         assert!(TokenUtils::estimate_token_count("hello") > 0);
-        assert!(TokenUtils::estimate_token_count("hello world") > TokenUtils::estimate_token_count("hello"));
+        assert!(
+            TokenUtils::estimate_token_count("hello world")
+                > TokenUtils::estimate_token_count("hello")
+        );
     }
 
     #[test]
@@ -132,5 +144,12 @@ mod tests {
         let truncated = TokenUtils::truncate_to_budget(text, 5);
         assert!(truncated.len() <= text.len());
         assert!(TokenUtils::estimate_token_count(&truncated) <= 5);
+    }
+
+    #[test]
+    fn test_truncate_utf8() {
+        let text = "éééééééééééééééééééé";
+        let truncated = TokenUtils::truncate_to_budget(text, 3);
+        assert!(truncated.is_char_boundary(truncated.len()));
     }
 }

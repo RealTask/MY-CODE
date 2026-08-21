@@ -19,8 +19,8 @@ readonly PROJECT_NAME="my-code"
 readonly BINARY_NAME="my-code"
 readonly GITHUB_REPO="RealTask/MY-CODE"
 readonly CARGO_PKG_NAME="my-code"
-readonly MIN_RUST_VERSION="1.75.0"
-readonly RECOMMENDED_RUST_VERSION="1.80.0"
+readonly MIN_RUST_VERSION="1.85.0"
+readonly RECOMMENDED_RUST_VERSION="1.85.0"
 
 # Colors for output
 readonly RED='\033[0;31m'
@@ -171,14 +171,14 @@ check_command() {
 }
 
 check_rust() {
-    if ! check_command cargo; then
+    if ! check_command rustc || ! check_command cargo; then
         return 1
     fi
     
     local rust_version
-    rust_version=$(cargo --version | awk '{print $2}')
+    rust_version=$(rustc --version | awk '{print $2}')
     
-    # Compare versions
+    # Compare versions (warn/fail when rustc is older than the minimum)
     if [[ "$(printf '%s\n' "$MIN_RUST_VERSION" "$rust_version" | sort -V | head -n1)" != "$MIN_RUST_VERSION" ]]; then
         log_warning "Rust version $rust_version is below minimum required ($MIN_RUST_VERSION)"
         return 1
@@ -204,8 +204,8 @@ check_dependencies() {
         fi
     done
     
-    # Optional dependencies
-    local optional=("pkg-config" "cmake" "libssl-dev" "build-essential")
+    # Optional commands (not Debian package names)
+    local optional=("pkg-config" "cmake")
     
     for dep in "${optional[@]}"; do
         if ! check_command "$dep"; then
@@ -273,11 +273,11 @@ check_rust_installation() {
         fi
     else
         local rust_version
-        rust_version=$(cargo --version)
-        log_success "Found: $rust_version"
+        rust_version=$(rustc --version | awk '{print $2}')
+        log_success "Found: rustc $rust_version / $(cargo --version)"
         
-        # Check if update is recommended
-        if [[ "$(printf '%s\n' "$RECOMMENDED_RUST_VERSION" "$rust_version" | sort -V | head -n1)" == "$RECOMMENDED_RUST_VERSION" ]]; then
+        # Warn when rustc is older than the recommended version
+        if [[ "$(printf '%s\n' "$RECOMMENDED_RUST_VERSION" "$rust_version" | sort -V | head -n1)" != "$RECOMMENDED_RUST_VERSION" ]]; then
             log_warning "Consider updating Rust to $RECOMMENDED_RUST_VERSION or newer for best performance"
         fi
     fi
@@ -336,8 +336,18 @@ build_from_source() {
         cd "${TEMP_DIR}/source"
     fi
     
-    # Build the project
-    local cargo_args=("--profile" "$PROFILE")
+    # Build the project.
+    # Cargo's debug output lives in target/debug and uses the `dev` profile,
+    # not a profile named `debug`.
+    local cargo_args=()
+    local binary_src
+    
+    if [[ "$PROFILE" == "release" ]]; then
+        cargo_args+=("--release")
+        binary_src="target/release/${BINARY_NAME}"
+    else
+        binary_src="target/debug/${BINARY_NAME}"
+    fi
     
     if [[ "$FEATURES" != "default" ]]; then
         cargo_args+=("--features" "$FEATURES")
@@ -348,7 +358,7 @@ build_from_source() {
     
     # Install the binary
     log_info "Installing binary to $BIN_DIR"
-    cp "target/${PROFILE}/${BINARY_NAME}" "${BIN_DIR}/"
+    cp "${binary_src}" "${BIN_DIR}/"
     chmod +x "${BIN_DIR}/${BINARY_NAME}"
     
     log_success "Build completed successfully"

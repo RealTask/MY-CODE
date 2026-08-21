@@ -14,15 +14,16 @@ impl TimeUtils {
 
     /// Format duration in human-readable form
     pub fn format_duration(duration: Duration) -> String {
-        let secs = duration.as_secs();
-        
-        if secs < 1 {
-            format!("{:.2}ms", duration.as_millis() as f64)
-        } else if secs < 60 {
-            format!("{:.1}s", secs as f64)
-        } else if secs < 3600 {
+        let millis = duration.as_millis();
+        if millis < 1000 {
+            format!("{millis}ms")
+        } else if duration.as_secs() < 60 {
+            format!("{:.1}s", duration.as_secs_f64())
+        } else if duration.as_secs() < 3600 {
+            let secs = duration.as_secs();
             format!("{}m {}s", secs / 60, secs % 60)
         } else {
+            let secs = duration.as_secs();
             format!("{}h {}m", secs / 3600, (secs % 3600) / 60)
         }
     }
@@ -37,13 +38,16 @@ impl TimeUtils {
 
     /// Calculate ETA based on progress
     pub fn calculate_eta(elapsed: Duration, progress: f64, total: f64) -> Option<Duration> {
-        if progress <= 0.0 || total <= 0.0 {
+        if progress <= 0.0 || total <= 0.0 || elapsed.is_zero() {
             return None;
         }
-        
+
         let rate = progress / elapsed.as_secs_f64();
-        let remaining = total - progress;
-        
+        if !rate.is_finite() || rate <= 0.0 {
+            return None;
+        }
+        let remaining = (total - progress).max(0.0);
+
         Some(Duration::from_secs_f64(remaining / rate))
     }
 
@@ -90,5 +94,10 @@ mod tests {
             std::thread::sleep(Duration::from_millis(10));
         });
         assert!(elapsed >= Duration::from_millis(10));
+    }
+
+    #[test]
+    fn test_eta_zero_elapsed() {
+        assert!(TimeUtils::calculate_eta(Duration::ZERO, 1.0, 10.0).is_none());
     }
 }

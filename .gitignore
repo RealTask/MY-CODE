@@ -1,4 +1,3 @@
-```
 # Compiled and build artifacts
 *.o
 *.obj
@@ -48,7 +47,6 @@ pip-delete-this-directory.txt
 nosetests.xml
 coverage.xml
 *.cover
-*.log
 .gitattributes
 .next
 .semaphore
@@ -60,7 +58,6 @@ coverage.xml
 .tm_properties
 .trash
 .trashes
-*.swp
 *.swo
 *~
 .DS_Store
@@ -69,34 +66,12 @@ coverage.xml
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Icon?
 Thumbs.db
 VolumeIcon.icns
-*.tmp
 *.temp
 *.bak
 *.orig
 *.rej
-*~
 \#*\#
 .\#*
 %*%
-._*
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Icon?
-Thumbs.db
-*.tmp
-*.temp
-*.bak
-*.orig
-*.rej
-*~
-\#*\#
-.\#*
-%*%
-```

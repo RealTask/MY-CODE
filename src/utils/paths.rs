@@ -1,7 +1,7 @@
 //! Path utilities for handling filesystem operations
 
-use std::path::{Path, PathBuf};
 use anyhow::Result;
+use std::path::{Path, PathBuf};
 
 /// Utility functions for path operations
 pub struct Paths;
@@ -10,7 +10,7 @@ impl Paths {
     /// Normalize a path, resolving `.` and `..` components
     pub fn normalize(path: &Path) -> PathBuf {
         let mut ret = PathBuf::new();
-        
+
         for component in path.components() {
             match component {
                 std::path::Component::RootDir => {
@@ -24,7 +24,6 @@ impl Paths {
                     ret.push(c);
                 }
                 std::path::Component::Prefix(_) => {
-                    // Windows prefix - just push it
                     ret.push(component.as_os_str());
                 }
             }
@@ -33,7 +32,7 @@ impl Paths {
         ret
     }
 
-    /// Check if a path is within a base directory
+    /// Check if a path is within a base directory (component-wise, after normalize).
     pub fn is_within(base: &Path, path: &Path) -> bool {
         let base = Self::normalize(base);
         let path = Self::normalize(path);
@@ -45,19 +44,36 @@ impl Paths {
         directories::UserDirs::new().map(|d| d.home_dir().to_path_buf())
     }
 
+    /// Project directory helpers from the `directories` crate.
+    fn project_dirs() -> Option<directories::ProjectDirs> {
+        directories::ProjectDirs::from("dev", "realtask", "my-code")
+    }
+
     /// Get the config directory for MY CODE
     pub fn config_dir() -> Option<PathBuf> {
-        directories::ConfigDir::new().map(|d| d.join("my-code"))
+        Self::project_dirs()
+            .map(|d| d.config_dir().to_path_buf())
+            .or_else(|| {
+                directories::BaseDirs::new().map(|d| d.config_dir().join("my-code"))
+            })
     }
 
     /// Get the data directory for MY CODE
     pub fn data_dir() -> Option<PathBuf> {
-        directories::DataDir::new().map(|d| d.join("my-code"))
+        Self::project_dirs()
+            .map(|d| d.data_dir().to_path_buf())
+            .or_else(|| {
+                directories::BaseDirs::new().map(|d| d.data_local_dir().join("my-code"))
+            })
     }
 
     /// Get the cache directory for MY CODE
     pub fn cache_dir() -> Option<PathBuf> {
-        directories::CacheDirs::new().map(|d| d.join("my-code"))
+        Self::project_dirs()
+            .map(|d| d.cache_dir().to_path_buf())
+            .or_else(|| {
+                directories::BaseDirs::new().map(|d| d.cache_dir().join("my-code"))
+            })
     }
 
     /// Ensure a directory exists, creating it if necessary
@@ -93,8 +109,15 @@ mod tests {
         let base = Path::new("/workspace");
         let within = Path::new("/workspace/project/src");
         let outside = Path::new("/etc/passwd");
+        let sibling = Path::new("/workspace-evil/src");
 
         assert!(Paths::is_within(base, within));
         assert!(!Paths::is_within(base, outside));
+        assert!(!Paths::is_within(base, sibling));
+    }
+
+    #[test]
+    fn config_dirs_are_some() {
+        assert!(Paths::config_dir().is_some() || Paths::home_dir().is_some());
     }
 }
